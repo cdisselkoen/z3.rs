@@ -105,6 +105,7 @@ pub struct Real<'ctx>(SafeAstPtr<'ctx>);
 /// [`Ast`](trait.Ast.html) node representing a bitvector value.
 #[derive(Hash, Debug, PartialEq, Eq, Clone)]
 pub struct BV<'ctx>(SafeAstPtr<'ctx>);
+
 /// [`Ast`](trait.Ast.html) node representing an array value.
 /// An array in Z3 is a mapping from indices to values.
 #[derive(Hash, Debug, PartialEq, Eq, Clone)]
@@ -271,7 +272,7 @@ for_each_ast!(impl_display);
 macro_rules! unop {
     ( $f:ident, $z3fn:ident, $retty:path ) => {
         pub fn $f(&self) -> $retty {
-            let ast_ptr = self.get_ast_ptr();
+            let ast_ptr = self.0;
             $retty(SafeAstPtr::new(ast_ptr.ctx, unsafe {
                 let guard = Z3_MUTEX.lock().unwrap();
                 $z3fn(ast_ptr.ctx.z3_ctx, ast_ptr.z3_ast)
@@ -283,7 +284,7 @@ macro_rules! unop {
 macro_rules! binop {
     ( $f:ident, $z3fn:ident, $retty:path ) => {
         pub fn $f(&self, other: &Self) -> $retty {
-            let ast_ptr = self.get_ast_ptr();
+            let ast_ptr = self.0;
             $retty(SafeAstPtr::new(ast_ptr.ctx, unsafe {
                 let guard = Z3_MUTEX.lock().unwrap();
                 $z3fn(ast_ptr.ctx.z3_ctx, ast_ptr.z3_ast, other.0.z3_ast)
@@ -291,19 +292,6 @@ macro_rules! binop {
         }
     };
 }
-
-/* We aren't currently using the trinop! macro for any of our trinops
-macro_rules! trinop {
-    ( $f:ident, $z3fn:ident, $retty:ty ) => {
-        pub fn $f(&self, a: &Self, b: &Self) -> $retty {
-            <$retty>::new(self.0.ctx, unsafe {
-                let guard = Z3_MUTEX.lock().unwrap();
-                $z3fn(ast_ptr.ctx.z3_ctx, ast_ptr.z3_ast, a.0.z3_ast, b.0.z3_ast)
-            })
-        }
-    };
-}
-*/
 
 macro_rules! varop {
     ( $f:ident, $z3fn:ident, $retty:path ) => {
@@ -455,7 +443,6 @@ impl<'ctx> Bool<'ctx> {
         }))
     }
 
-    // This doesn't quite fit the trinop! macro because of the generic argty
     pub fn ite<T>(&self, a: &T, b: &T) -> T
     where
         T: Ast<'ctx>,
@@ -1089,8 +1076,6 @@ impl<'ctx> Array<'ctx> {
     ///
     /// Note that the `index` _must be_ of the array's `domain` sort,
     /// and the `value` _must be_ of the array's `range` sort.
-    //
-    // We avoid the trinop! macro because the arguments have non-Self types
     pub fn store(&self, index: &Dynamic<'ctx>, value: &Dynamic<'ctx>) -> Self {
         let ast_ptr = self.get_ast_ptr();
         Self(SafeAstPtr::new(ast_ptr.ctx, unsafe {
