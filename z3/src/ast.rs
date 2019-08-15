@@ -272,7 +272,7 @@ for_each_ast!(impl_display);
 macro_rules! unop {
     ( $f:ident, $z3fn:ident, $retty:path ) => {
         pub fn $f(&self) -> $retty {
-            let ast_ptr = self.0;
+            let ast_ptr = &self.0;
             $retty(SafeAstPtr::new(ast_ptr.ctx, unsafe {
                 let guard = Z3_MUTEX.lock().unwrap();
                 $z3fn(ast_ptr.ctx.z3_ctx, ast_ptr.z3_ast)
@@ -284,7 +284,7 @@ macro_rules! unop {
 macro_rules! binop {
     ( $f:ident, $z3fn:ident, $retty:path ) => {
         pub fn $f(&self, other: &Self) -> $retty {
-            let ast_ptr = self.0;
+            let ast_ptr = &self.0;
             $retty(SafeAstPtr::new(ast_ptr.ctx, unsafe {
                 let guard = Z3_MUTEX.lock().unwrap();
                 $z3fn(ast_ptr.ctx.z3_ctx, ast_ptr.z3_ast, other.0.z3_ast)
